@@ -1,9 +1,13 @@
 import axios from 'axios';
 import { config } from '../config/index.js';
 
+const normalizedBaseUrl = config.modelServiceUrl.startsWith('http://') || config.modelServiceUrl.startsWith('https://')
+  ? config.modelServiceUrl
+  : `http://${config.modelServiceUrl}`;
+
 const client = axios.create({
-  baseURL: config.modelServiceUrl,
-  timeout: 15000,
+  baseURL: normalizedBaseUrl,
+  timeout: 25000,
   headers: {
     'Content-Type': 'application/json'
   }

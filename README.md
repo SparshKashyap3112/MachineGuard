@@ -195,6 +195,54 @@ Open **[http://127.0.0.1:5173/](http://127.0.0.1:5173/)** in your web browser.
 
 ---
 
+## Deploying on Render (render.com)
+
+MachineGuard AI is configured for deployment on [Render](https://render.com) using Infrastructure-as-Code via [`render.yaml`](./render.yaml).
+
+### Method 1: Render Blueprints (Recommended — 1-Click Multi-Service)
+
+1. Fork or push this repository to your GitHub account: `https://github.com/SparshKashyap3112/MachineGuard.git`
+2. Log in to [Render Dashboard](https://dashboard.render.com).
+3. Click **New +** &rarr; **Blueprint**.
+4. Connect your **MachineGuard** repository.
+5. Render will detect `render.yaml` and provision both:
+   - **`machineguard-model-service`**: Python Gunicorn inference service loading Keras LSTM.
+   - **`machineguard-gateway`**: Full-stack Node.js server serving both the Express API and the compiled React production bundle.
+6. Click **Apply**. Render will automatically build and deploy both services!
+
+---
+
+### Method 2: Manual Setup on Render
+
+If you prefer setting up the web services manually on Render:
+
+#### Service 1: Python Model Inference Service
+- **Type**: Web Service
+- **Name**: `machineguard-model-service`
+- **Runtime**: `Python 3`
+- **Build Command**: `pip install -r model-service/requirements.txt`
+- **Start Command**: `gunicorn model-service.app:app -b 0.0.0.0:$PORT --timeout 180 --workers 1 --threads 4`
+- **Health Check Path**: `/health`
+- **Environment Variables**:
+  - `PYTHON_VERSION`: `3.11.9`
+  - `ARTIFACTS_DIR`: `./machineguard_artifacts`
+
+#### Service 2: Full-Stack Node.js Web Service
+- **Type**: Web Service
+- **Name**: `machineguard-gateway`
+- **Runtime**: `Node`
+- **Build Command**: `npm run build`
+- **Start Command**: `npm start`
+- **Health Check Path**: `/api/health`
+- **Environment Variables**:
+  - `NODE_ENV`: `production`
+  - `MODEL_SERVICE_URL`: URL of Service 1 (e.g. `https://machineguard-model-service.onrender.com`)
+  - `FRONTEND_URL`: `*`
+  - `CMAPSS_DATA_DIR`: `./CMAPSSData`
+  - `ARTIFACTS_DIR`: `./machineguard_artifacts`
+
+---
+
 ## API Endpoints Reference
 
 ### 1. Health Status

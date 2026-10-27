@@ -17,12 +17,16 @@ logger = logging.getLogger("MachineGuardInference")
 app = Flask(__name__)
 CORS(app)
 
-# Artifact file paths (relative to workspace root or specified by env)
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ARTIFACTS_DIR = os.getenv(
-    "ARTIFACTS_DIR",
-    os.path.join(BASE_DIR, "machineguard_artifacts")
-)
+# Artifact file paths (candidate paths for local dev and cloud deployment like Render)
+candidate_paths = [
+    os.getenv("ARTIFACTS_DIR"),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "machineguard_artifacts")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "machineguard_artifacts")),
+    os.path.abspath(os.path.join(os.getcwd(), "machineguard_artifacts")),
+    os.path.abspath(os.path.join(os.getcwd(), "..", "machineguard_artifacts"))
+]
+ARTIFACTS_DIR = next((p for p in candidate_paths if p and os.path.exists(p)), os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "machineguard_artifacts")))
+logger.info("Using ARTIFACTS_DIR: %s", ARTIFACTS_DIR)
 
 MODEL_PATH = os.path.join(ARTIFACTS_DIR, "machineguard_lstm.keras")
 SCALER_PATH = os.path.join(ARTIFACTS_DIR, "sensor_scaler.pkl")
@@ -252,6 +256,6 @@ def predict_batch():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5001))
-    host = os.getenv("HOST", "127.0.0.1")
+    host = os.getenv("HOST", "0.0.0.0")
     logger.info("Starting MachineGuard Python Inference Service on %s:%d...", host, port)
     app.run(host=host, port=port, debug=False)

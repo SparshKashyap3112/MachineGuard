@@ -1,0 +1,47 @@
+# ==============================================================================
+# MachineGuard AI — Render Blueprint Configuration (Infrastructure-as-Code)
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Python Flask LSTM Inference Web Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: machineguard-model-service
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r model-service/requirements.txt
+    startCommand: gunicorn model-service.app:app -b 0.0.0.0:$PORT --timeout 180 --workers 1 --threads 4
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ARTIFACTS_DIR
+        value: ./machineguard_artifacts
+
+  # ----------------------------------------------------------------------------
+  # 2. Node.js Express Gateway & Full-Stack Application
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: machineguard-gateway
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MODEL_SERVICE_URL
+        fromService:
+          type: web
+          name: machineguard-model-service
+          property: host
+      - key: FRONTEND_URL
+        value: "*"
+      - key: CMAPSS_DATA_DIR
+        value: ./CMAPSSData
+      - key: ARTIFACTS_DIR
+        value: ./machineguard_artifacts

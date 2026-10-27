@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import fs from 'fs';
+import path from 'path';
 import { config } from './config/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -15,7 +17,8 @@ const app = express();
 
 // Security headers
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false // Allows inline styles/fonts and background videos
 }));
 
 // CORS Configuration
@@ -28,11 +31,10 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+    if (!origin || config.frontendUrl === '*' || allowedOrigins.includes(origin) || origin.includes('onrender.com') || origin.startsWith('http://localhost:')) {
       callback(null, true);
     } else {
-      callback(null, true); // Permissive in local dev
+      callback(null, true);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -61,7 +63,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/model', modelRoutes);
 
-// Fallback 404 handler
+// Fallback 404 handler for API routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({
     success: false,
@@ -69,6 +71,15 @@ app.use('/api/*', (req, res) => {
     code: 'ROUTE_NOT_FOUND'
   });
 });
+
+// Serve built React client if client/dist exists (Full-stack production mode)
+if (fs.existsSync(config.clientDistDir)) {
+  console.log(`[Static] Serving frontend bundle from: ${config.clientDistDir}`);
+  app.use(express.static(config.clientDistDir));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(config.clientDistDir, 'index.html'));
+  });
+}
 
 // Centralized error handling
 app.use(errorHandler);
