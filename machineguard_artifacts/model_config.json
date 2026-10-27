@@ -1,0 +1,8 @@
+{
+    "window_size": 30,
+    "num_features": 21,
+    "rul_cap": 125,
+    "target": "remaining_useful_life",
+    "model_type": "LSTM",
+    "dataset": "NASA C-MAPSS FD001"
+}
